@@ -17,13 +17,13 @@
 .PARAMETER DisableLogging
 	Disables logging to file for the script. Default is: $false.
 .EXAMPLE
-    powershell.exe -Command "& { & '.\Deploy-Application.ps1' -DeployMode 'Silent'; Exit $LastExitCode }"
+	Deploy-Application.ps1
 .EXAMPLE
-    powershell.exe -Command "& { & '.\Deploy-Application.ps1' -AllowRebootPassThru; Exit $LastExitCode }"
+	Deploy-Application.ps1 -DeployMode 'Silent'
 .EXAMPLE
-    powershell.exe -Command "& { & '.\Deploy-Application.ps1' -DeploymentType 'Uninstall'; Exit $LastExitCode }"
+	Deploy-Application.ps1 -AllowRebootPassThru -AllowDefer
 .EXAMPLE
-    Deploy-Application.exe -DeploymentType "Install" -DeployMode "Silent"
+	Deploy-Application.ps1 -DeploymentType Uninstall
 .NOTES
 	Toolkit Exit Code Ranges:
 	60000 - 68999: Reserved for built-in exit codes in Deploy-Application.ps1, Deploy-Application.exe, and AppDeployToolkitMain.ps1
@@ -56,19 +56,24 @@ Try {
 	##* VARIABLE DECLARATION
 	##*===============================================
 	## Variables: Application
-	[string]$appVendor = ''
-	[string]$appName = ''
-	[string]$appVersion = ''
-	[string]$appArch = ''
-	[string]$appLang = 'EN'
-	[string]$appRevision = '01'
-	[string]$appScriptVersion = '1.0.0'
-	[string]$appScriptDate = '02/06/2015'
-	[string]$appScriptAuthor = '<author name>'
+	
+    # TUT changes:
+    # NOTE! These are default values that can be overrided in Deploy-Settings.ps1
+    
+    # Processes to be closed - initial value is set here because the variables must be nonempty
+    [string]$installCloseApps = 'foobar_nonempty_string'
+    [string]$uninstallCloseApps = 'foobar_nonempty_string'
+    # Empty disk space (MB) required to be free by default
+    [int32]$installRequiredDiskSpace = 500
+	# How many days user can postpone
+	[int32]$postponeDays = 5
+    # Content Dir, the root directory of the package
+    [string]$cd = Split-Path -Path $MyInvocation.MyCommand.Definition -Parent
+    
+    # Run Deploy-Settings.ps1 containing settings for current application
+    . "$cd\Deploy-Settings.ps1"
+	
 	##*===============================================
-	## Variables: Install Titles (Only set here to override defaults set by the toolkit)
-	[string]$installName = ''
-	[string]$installTitle = ''
 	
 	##* Do not modify section below
 	#region DoNotModify
@@ -78,13 +83,14 @@ Try {
 	
 	## Variables: Script
 	[string]$deployAppScriptFriendlyName = 'Deploy Application'
-	[version]$deployAppScriptVersion = [version]'3.6.8'
-	[string]$deployAppScriptDate = '02/06/2016'
+	[version]$deployAppScriptVersion = [version]'3.6.5'
+	[string]$deployAppScriptDate = '08/17/2015'
 	[hashtable]$deployAppScriptParameters = $psBoundParameters
 	
 	## Variables: Environment
 	If (Test-Path -LiteralPath 'variable:HostInvocation') { $InvocationInfo = $HostInvocation } Else { $InvocationInfo = $MyInvocation }
 	[string]$scriptDirectory = Split-Path -Path $InvocationInfo.MyCommand.Definition -Parent
+
 	
 	## Dot source the required App Deploy Toolkit Functions
 	Try {
@@ -111,14 +117,14 @@ Try {
 		##*===============================================
 		[string]$installPhase = 'Pre-Installation'
 		
-		## Show Welcome Message, close Internet Explorer if required, allow up to 3 deferrals, verify there is enough disk space to complete the install, and persist the prompt
-		Show-InstallationWelcome -CloseApps 'iexplore' -AllowDefer -DeferTimes 3 -CheckDiskSpace -PersistPrompt
-		
-		## Show Progress Message (with the default message)
-		Show-InstallationProgress
-		
 		## <Perform Pre-Installation tasks here>
-		
+
+        # TUT change:
+		# Show welcome screen for installation
+		$result = Show-InstallationWelcome -CloseApps $installCloseApps -AllowDeferCloseApps -DeferDays $postponeDays -CheckDiskSpace -RequiredDiskSpace $installRequiredDiskSpace -MinimizeWindows $false
+
+		# Example how to write log in C:\Windows\logs\Software:
+		#Write-Log -Message "Example message" -Source ${CmdletName}
 		
 		##*===============================================
 		##* INSTALLATION 
@@ -130,9 +136,11 @@ Try {
 			[hashtable]$ExecuteDefaultMSISplat =  @{ Action = 'Install'; Path = $defaultMsiFile }; If ($defaultMstFile) { $ExecuteDefaultMSISplat.Add('Transform', $defaultMstFile) }
 			Execute-MSI @ExecuteDefaultMSISplat; If ($defaultMspFiles) { $defaultMspFiles | ForEach-Object { Execute-MSI -Action 'Patch' -Path $_ } }
 		}
-		
+
 		## <Perform Installation tasks here>
-		
+
+		# TUT change: call the installation function defined in Deploy-Settings.ps1
+		Install
 		
 		##*===============================================
 		##* POST-INSTALLATION
@@ -142,7 +150,7 @@ Try {
 		## <Perform Post-Installation tasks here>
 		
 		## Display a message at the end of the install
-		If (-not $useDefaultMsi) { Show-InstallationPrompt -Message 'You can customize text to appear at the end of an install or remove it completely for unattended installations.' -ButtonRightText 'OK' -Icon Information -NoWait }
+#		If (-not $useDefaultMsi) { Show-InstallationPrompt -Message 'You can customize text to appear at the end of an install or remove it completely for unattended installations.' -ButtonRightText 'OK' -Icon Information -NoWait }
 	}
 	ElseIf ($deploymentType -ieq 'Uninstall')
 	{
@@ -150,15 +158,12 @@ Try {
 		##* PRE-UNINSTALLATION
 		##*===============================================
 		[string]$installPhase = 'Pre-Uninstallation'
-		
-		## Show Welcome Message, close Internet Explorer with a 60 second countdown before automatically closing
-		Show-InstallationWelcome -CloseApps 'iexplore' -CloseAppsCountdown 60
-		
-		## Show Progress Message (with the default message)
-		Show-InstallationProgress
-		
+
 		## <Perform Pre-Uninstallation tasks here>
-		
+	
+        # TUT change:
+		# Show welcome screen for uninstallation
+		Show-InstallationWelcome -CloseApps $uninstallCloseApps -AllowDeferCloseApps -DeferDays $postponeDays -MinimizeWindows $false
 		
 		##*===============================================
 		##* UNINSTALLATION
@@ -172,8 +177,10 @@ Try {
 		}
 		
 		# <Perform Uninstallation tasks here>
-		
-		
+
+		# TUT change: call the uninstallation function defined in Deploy-Settings.ps1
+		Uninstall
+				
 		##*===============================================
 		##* POST-UNINSTALLATION
 		##*===============================================

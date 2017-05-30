@@ -10139,7 +10139,9 @@ If (-not $appName) {
 }
 If ($ReferredInstallTitle) { [string]$installTitle = $ReferredInstallTitle }
 If (-not $installTitle) {
-	[string]$installTitle = ("$appVendor $appName $appVersion").Trim()
+	# TUT change: Remove app version from window title because showing the old version during uninstall is confusing
+	#[string]$installTitle = ("$appVendor $appName $appVersion").Trim()
+	[string]$installTitle = ("$appVendor $appName").Trim()
 }
 
 ## Sanitize the application details, as they can cause issues in the script
