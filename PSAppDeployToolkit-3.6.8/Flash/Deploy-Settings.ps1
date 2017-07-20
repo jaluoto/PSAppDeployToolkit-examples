@@ -1,7 +1,7 @@
-# --- Name and version information for the application
+# --- Name and version information for the application. ADT logging uses these, so remember to set the version correctly.
 [string]$appVendor = 'Adobe'
 [string]$appName = 'Flash Player'
-[string]$appVersion = '21.0.0.213'
+[string]$appVersion = '1.0.0.0'
 
 # Installation code
 Function Install {
