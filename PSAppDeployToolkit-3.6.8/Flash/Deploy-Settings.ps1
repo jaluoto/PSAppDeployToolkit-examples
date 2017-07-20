@@ -12,8 +12,8 @@ Function Install {
 		Execute-MSI -Action Install -Path 'install_flash_player_active_x.msi' -Transform 'Flash-IE-TUT.mst'
 	}
 	
-	xcopy.exe "mms.cfg" "c:\windows\syswow64\macromed\flash" /Y /C /Q /R /H
-	xcopy.exe "mms.cfg" "c:\windows\system32\macromed\flash" /Y /C /Q /R /H
+	xcopy.exe "$dirfiles\mms.cfg" "c:\windows\syswow64\macromed\flash" /Y /C /Q /R /H
+	xcopy.exe "$dirfiles\mms.cfg" "c:\windows\system32\macromed\flash" /Y /C /Q /R /H
 	schtasks.exe /delete /tn "Adobe Flash Player Updater" /f
 }
 
