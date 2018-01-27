@@ -17,13 +17,13 @@
 .PARAMETER DisableLogging
 	Disables logging to file for the script. Default is: $false.
 .EXAMPLE
-	Deploy-Application.ps1
+    powershell.exe -Command "& { & '.\Deploy-Application.ps1' -DeployMode 'Silent'; Exit $LastExitCode }"
 .EXAMPLE
-	Deploy-Application.ps1 -DeployMode 'Silent'
+    powershell.exe -Command "& { & '.\Deploy-Application.ps1' -AllowRebootPassThru; Exit $LastExitCode }"
 .EXAMPLE
-	Deploy-Application.ps1 -AllowRebootPassThru -AllowDefer
+    powershell.exe -Command "& { & '.\Deploy-Application.ps1' -DeploymentType 'Uninstall'; Exit $LastExitCode }"
 .EXAMPLE
-	Deploy-Application.ps1 -DeploymentType Uninstall
+    Deploy-Application.exe -DeploymentType "Install" -DeployMode "Silent"
 .NOTES
 	Toolkit Exit Code Ranges:
 	60000 - 68999: Reserved for built-in exit codes in Deploy-Application.ps1, Deploy-Application.exe, and AppDeployToolkitMain.ps1
@@ -70,7 +70,7 @@ Try {
     # Content Dir, the root directory of the package
     [string]$cd = Split-Path -Path $MyInvocation.MyCommand.Definition -Parent
     
-    # Run Deploy-Settings.ps1 containing settings for current application
+    # Run Deploy-Settings.ps1 containing settings and Install/Uninstall function code for current application
     . "$cd\Deploy-Settings.ps1"
 	
 	##*===============================================
@@ -83,8 +83,8 @@ Try {
 	
 	## Variables: Script
 	[string]$deployAppScriptFriendlyName = 'Deploy Application'
-	[version]$deployAppScriptVersion = [version]'3.6.5'
-	[string]$deployAppScriptDate = '08/17/2015'
+	[version]$deployAppScriptVersion = [version]'3.6.8'
+	[string]$deployAppScriptDate = '02/06/2016'
 	[hashtable]$deployAppScriptParameters = $psBoundParameters
 	
 	## Variables: Environment
@@ -119,7 +119,7 @@ Try {
 		
 		## <Perform Pre-Installation tasks here>
 
-        # TUT change:
+		# TUT change:
 		# Show welcome screen for installation
 		$result = Show-InstallationWelcome -CloseApps $installCloseApps -AllowDeferCloseApps -DeferDays $postponeDays -CheckDiskSpace -RequiredDiskSpace $installRequiredDiskSpace -MinimizeWindows $false
 
@@ -150,7 +150,8 @@ Try {
 		## <Perform Post-Installation tasks here>
 		
 		## Display a message at the end of the install
-#		If (-not $useDefaultMsi) { Show-InstallationPrompt -Message 'You can customize text to appear at the end of an install or remove it completely for unattended installations.' -ButtonRightText 'OK' -Icon Information -NoWait }
+		# TUT change: commented out, not needed
+		# If (-not $useDefaultMsi) { Show-InstallationPrompt -Message 'You can customize text to appear at the end of an install or remove it completely for unattended installations.' -ButtonRightText 'OK' -Icon Information -NoWait }
 	}
 	ElseIf ($deploymentType -ieq 'Uninstall')
 	{
@@ -161,7 +162,7 @@ Try {
 
 		## <Perform Pre-Uninstallation tasks here>
 	
-        # TUT change:
+		# TUT change:
 		# Show welcome screen for uninstallation
 		Show-InstallationWelcome -CloseApps $uninstallCloseApps -AllowDeferCloseApps -DeferDays $postponeDays -MinimizeWindows $false
 		
