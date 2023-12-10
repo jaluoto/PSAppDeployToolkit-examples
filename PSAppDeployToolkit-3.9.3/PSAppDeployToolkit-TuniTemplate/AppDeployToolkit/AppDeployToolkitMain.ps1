@@ -15887,7 +15887,9 @@ If ($ReferredInstallTitle) {
     [String]$installTitle = (Remove-InvalidFileNameChars -Name ($ReferredInstallTitle.Trim()))
 }
 If (-not $installTitle) {
-    [String]$installTitle = "$appVendor $appName $appVersion"
+    # TUNI changes:
+    # [String]$installTitle = "$appVendor $appName $appVersion"
+	[String]$installTitle = ("$appVendor $appName").Trim()
 }
 
 ## Set Powershell window title, in case the window is visible

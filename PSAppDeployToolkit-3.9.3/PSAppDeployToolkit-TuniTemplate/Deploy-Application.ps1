@@ -116,6 +116,21 @@ Try {
     [String]$appScriptVersion = '1.0.0'
     [String]$appScriptDate = 'XX/XX/20XX'
     [String]$appScriptAuthor = '<author name>'
+
+    # TUNI changes:
+    # These are template-wide default settings that can be overwritten in Deploy-Settings.ps1
+    # List of processes to close - set dummy variables because they can't be empty
+    [string]$installCloseApps = 'foobar_nonempty_string'
+    [string]$uninstallCloseApps = 'foobar_nonempty_string'
+    # Empty disk space in MB that is required unless there's a more specific per-package value
+    [int32]$installRequiredDiskSpace = 500
+	# How many days to allow postpone by default
+	[int32]$postponeDays = 5
+    # Path to Deploy-Settings.ps1
+    [string]$deploySettingsPath = Split-Path -Path $MyInvocation.MyCommand.Definition -Parent
+    # Include package-specific settings from Deploy-Settings.ps1
+    . "$deploySettingsPath\Deploy-Settings.ps1"
+
     ##*===============================================
     ## Variables: Install Titles (Only set here to override defaults set by the toolkit)
     [String]$installName = ''
@@ -181,14 +196,18 @@ Try {
         ##*===============================================
         [String]$installPhase = 'Pre-Installation'
 
-        ## Show Welcome Message, close Internet Explorer if required, allow up to 3 deferrals, verify there is enough disk space to complete the install, and persist the prompt
-        Show-InstallationWelcome -CloseApps 'iexplore' -AllowDefer -DeferTimes 3 -CheckDiskSpace -PersistPrompt
+        # TUNI changes:
+        
+        # ## Show Welcome Message, close Internet Explorer if required, allow up to 3 deferrals, verify there is enough disk space to complete the install, and persist the prompt
+        # Show-InstallationWelcome -CloseApps 'iexplore' -AllowDefer -DeferTimes 3 -CheckDiskSpace -PersistPrompt
 
-        ## Show Progress Message (with the default message)
-        Show-InstallationProgress
+        # ## Show Progress Message (with the default message)
+        # Show-InstallationProgress
 
         ## <Perform Pre-Installation tasks here>
 
+        # TUNI changes:
+        $result = Show-InstallationWelcome -CloseApps $installCloseApps -AllowDeferCloseApps -DeferDays $postponeDays -CheckDiskSpace -RequiredDiskSpace $installRequiredDiskSpace -MinimizeWindows $false
 
         ##*===============================================
         ##* INSTALLATION
@@ -207,6 +226,8 @@ Try {
 
         ## <Perform Installation tasks here>
 
+        # TUNI changes:
+        Install
 
         ##*===============================================
         ##* POST-INSTALLATION
@@ -215,10 +236,11 @@ Try {
 
         ## <Perform Post-Installation tasks here>
 
-        ## Display a message at the end of the install
-        If (-not $useDefaultMsi) {
-            Show-InstallationPrompt -Message 'You can customize text to appear at the end of an install or remove it completely for unattended installations.' -ButtonRightText 'OK' -Icon Information -NoWait
-        }
+        # TUNI changes:
+        # ## Display a message at the end of the install
+        # If (-not $useDefaultMsi) {
+        #     Show-InstallationPrompt -Message 'You can customize text to appear at the end of an install or remove it completely for unattended installations.' -ButtonRightText 'OK' -Icon Information -NoWait
+        # }
     }
     ElseIf ($deploymentType -ieq 'Uninstall') {
         ##*===============================================
@@ -226,14 +248,18 @@ Try {
         ##*===============================================
         [String]$installPhase = 'Pre-Uninstallation'
 
-        ## Show Welcome Message, close Internet Explorer with a 60 second countdown before automatically closing
-        Show-InstallationWelcome -CloseApps 'iexplore' -CloseAppsCountdown 60
+        # TUNI changes:
 
-        ## Show Progress Message (with the default message)
-        Show-InstallationProgress
+        # ## Show Welcome Message, close Internet Explorer with a 60 second countdown before automatically closing
+        # Show-InstallationWelcome -CloseApps 'iexplore' -CloseAppsCountdown 60
+
+        # ## Show Progress Message (with the default message)
+        # Show-InstallationProgress
 
         ## <Perform Pre-Uninstallation tasks here>
 
+        # TUNI changes:
+        Show-InstallationWelcome -CloseApps $uninstallCloseApps -AllowDeferCloseApps -DeferDays $postponeDays -MinimizeWindows $false
 
         ##*===============================================
         ##* UNINSTALLATION
@@ -250,6 +276,8 @@ Try {
 
         ## <Perform Uninstallation tasks here>
 
+        # TUNI changes:
+        Uninstall
 
         ##*===============================================
         ##* POST-UNINSTALLATION
@@ -266,13 +294,17 @@ Try {
         ##*===============================================
         [String]$installPhase = 'Pre-Repair'
 
-        ## Show Welcome Message, close Internet Explorer with a 60 second countdown before automatically closing
-        Show-InstallationWelcome -CloseApps 'iexplore' -CloseAppsCountdown 60
+        # TUNI changes:
+        # ## Show Welcome Message, close Internet Explorer with a 60 second countdown before automatically closing
+        # Show-InstallationWelcome -CloseApps 'iexplore' -CloseAppsCountdown 60
 
-        ## Show Progress Message (with the default message)
-        Show-InstallationProgress
+        # ## Show Progress Message (with the default message)
+        # Show-InstallationProgress
 
         ## <Perform Pre-Repair tasks here>
+
+        # TUNI changes:
+		Show-InstallationWelcome -CloseApps $uninstallCloseApps -AllowDeferCloseApps -DeferDays $postponeDays -MinimizeWindows $false
 
         ##*===============================================
         ##* REPAIR
@@ -287,6 +319,9 @@ Try {
             Execute-MSI @ExecuteDefaultMSISplat
         }
         ## <Perform Repair tasks here>
+
+        # TUNI changes:
+        Repair
 
         ##*===============================================
         ##* POST-REPAIR
